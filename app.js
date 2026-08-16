@@ -1,70 +1,21 @@
-const STORAGE_KEY = "mis-tareas-v1";
-let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-let filter = "all";
-
-const $ = (id) => document.getElementById(id);
-const form = $("taskForm"), input = $("taskInput"), priority = $("priorityInput"), category = $("categoryInput"), date = $("dateInput");
-const list = $("taskList"), empty = $("emptyState"), search = $("searchInput");
-
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-const formatDate = (value) => value ? new Date(value + "T00:00:00").toLocaleDateString("es-CO", {day:"2-digit", month:"short"}) : "Sin fecha";
-
-$("today").textContent = new Date().toLocaleDateString("es-CO", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
-date.value = todayISO();
-
-function render() {
-  const query = search.value.trim().toLowerCase();
-  let visible = tasks.filter(t => filter === "all" || (filter === "done" ? t.done : !t.done));
-  if (query) visible = visible.filter(t => `${t.title} ${t.category}`.toLowerCase().includes(query));
-  visible.sort((a,b) => Number(a.done)-Number(b.done) || (a.date || "9999").localeCompare(b.date || "9999"));
-
-  list.innerHTML = visible.map(t => `
-    <article class="task ${t.done ? "done" : ""}" data-id="${t.id}">
-      <button class="check" aria-label="${t.done ? "Marcar pendiente" : "Completar tarea"}" data-action="toggle">${t.done ? "✓" : ""}</button>
-      <div>
-        <p class="title">${escapeHtml(t.title)}</p>
-        <div class="meta">
-          <span class="tag">${escapeHtml(t.category)}</span>
-          <span class="tag ${t.priority === "alta" ? "high" : t.priority === "baja" ? "low" : ""}">${t.priority[0].toUpperCase()+t.priority.slice(1)}</span>
-          <span>📅 ${formatDate(t.date)}</span>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="icon-btn" title="Eliminar" data-action="delete">🗑️</button>
-      </div>
-    </article>`).join("");
-
-  empty.classList.toggle("hidden", visible.length > 0);
-  $("totalCount").textContent = tasks.length;
-  $("pendingCount").textContent = tasks.filter(t => !t.done).length;
-  $("doneCount").textContent = tasks.filter(t => t.done).length;
-  $("highCount").textContent = tasks.filter(t => !t.done && t.priority === "alta").length;
-}
-
-function escapeHtml(text) {
-  return text.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
-}
-
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
-  tasks.push({ id: crypto.randomUUID(), title: input.value.trim(), priority: priority.value, category: category.value, date: date.value, done:false });
-  save(); form.reset(); date.value = todayISO(); input.focus(); render();
-});
-
-list.addEventListener("click", (e) => {
-  const button = e.target.closest("button"); if (!button) return;
-  const item = button.closest(".task"); const id = item?.dataset.id;
-  const task = tasks.find(t => t.id === id); if (!task) return;
-  if (button.dataset.action === "toggle") task.done = !task.done;
-  if (button.dataset.action === "delete") tasks = tasks.filter(t => t.id !== id);
-  save(); render();
-});
-
-document.querySelectorAll(".filter").forEach(btn => btn.addEventListener("click", () => {
-  document.querySelectorAll(".filter").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active"); filter = btn.dataset.filter; render();
-}));
-search.addEventListener("input", render);
-$("clearCompleted").addEventListener("click", () => { tasks = tasks.filter(t => !t.done); save(); render(); });
-render();
+const KEY='mi-agenda-v2';let tasks=JSON.parse(localStorage.getItem(KEY)||'[]'),view='today',cursor=new Date();cursor.setHours(0,0,0,0);let editing=null;
+const $=id=>document.getElementById(id), iso=d=>{let x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)}, today=iso(new Date()), save=()=>localStorage.setItem(KEY,JSON.stringify(tasks));
+const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'}), same=(a,b)=>a===b, esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+$('todayLabel').textContent=fmt(today);$('date').value=today;
+function instances(t){if(t.repeat==='none')return [t];let out=[];let start=new Date(t.date+'T00:00:00'),end=new Date(start);end.setMonth(end.getMonth()+6);for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){let ok=t.repeat==='daily'||(t.repeat==='weekdays'&&d.getDay()>0&&d.getDay()<6)||(t.repeat==='weekly'&&d.getDay()===start.getDay())||(t.repeat==='monthly'&&d.getDate()===start.getDate());if(ok)out.push({...t,date:iso(d),instance:true});}return out}
+function allTasks(){return tasks.flatMap(instances)}
+function taskCard(t){let overdue=!t.done&&t.date<today;return `<article class="task ${t.done?'done':''} ${overdue?'overdue':''}"><button class="check" data-act="toggle" data-id="${t.id}">${t.done?'✓':''}</button><div><p class="task-title">${esc(t.title)}</p><div class="meta"><span class="tag">${esc(t.category)}</span><span class="tag ${t.priority==='alta'?'high':''}">${t.priority}</span><span>📅 ${t.date===today?'Hoy':t.date}</span>${t.time?`<span>⏰ ${t.time}</span>`:''}${t.repeat!=='none'?`<span>🔁 ${labelRepeat(t.repeat)}</span>`:''}</div></div><div class="task-actions"><button data-act="edit" data-id="${t.id}">✏️</button><button data-act="delete" data-id="${t.id}">🗑️</button></div></article>`}
+function labelRepeat(r){return {daily:'Diaria',weekdays:'L-V',weekly:'Semanal',monthly:'Mensual'}[r]||''}
+function renderStats(){let a=allTasks(),pending=a.filter(t=>!t.done);$('pending').textContent=pending.length;$('done').textContent=a.filter(t=>t.done).length;$('overdue').textContent=pending.filter(t=>t.date<today).length;let w=new Date();let day=w.getDay()||7;let monday=new Date(w);monday.setDate(w.getDate()-day+1);let end=new Date(monday);end.setDate(monday.getDate()+6);$('week').textContent=a.filter(t=>new Date(t.date)>=new Date(iso(monday)+'T00:00:00')&&new Date(t.date)<=new Date(iso(end)+'T23:59:59')).filter(t=>!t.done).length}
+function render(){renderStats();renderCats();let c=$('content');$('viewTitle').textContent={today:'Hoy',agenda:'Agenda',calendar:'Calendario',tasks:'Todas las tareas'}[view];if(view==='calendar')return renderCalendar(c);if(view==='agenda')return renderAgenda(c);let arr=allTasks().filter(t=>view==='today'?t.date===today:true);arr.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));c.innerHTML=`<div class="section-head"><h2>${view==='today'?'Tareas de hoy':'Todas las tareas'}</h2><button class="secondary" id="quickAdd">+ Agregar</button></div><div class="task-list">${arr.length?arr.map(taskCard).join(''):'<div class="card empty">No tienes tareas aquí. ✨</div>'}</div>`;$('quickAdd')?.addEventListener('click',openNew)}
+function renderCats(){let cats=[...new Set(tasks.map(t=>t.category))];$('categoryNav').innerHTML=cats.map(x=>`<div class="cat"><i class="cat-dot"></i>${esc(x)}</div>`).join('')}
+function renderAgenda(c){let base=new Date(cursor),days=[];for(let i=0;i<7;i++){let d=new Date(base);d.setDate(base.getDate()+i);days.push(iso(d))}c.innerHTML=`<div class="week-row">${days.map(d=>`<div class="week-card ${d===today?'today':''}"><div class="week-name">${new Date(d+'T00:00:00').toLocaleDateString('es-CO',{weekday:'short'})}</div><div class="week-num">${new Date(d+'T00:00:00').getDate()}</div>${allTasks().filter(t=>t.date===d).slice(0,6).map(t=>`<div class="week-task">${t.time? t.time+' · ':''}${esc(t.title)}</div>`).join('')}</div>`).join('')}</div>`}
+function renderCalendar(c){let y=cursor.getFullYear(),m=cursor.getMonth(),first=new Date(y,m,1),start=(first.getDay()+6)%7,days=new Date(y,m+1,0).getDate(),prev=new Date(y,m,0).getDate(),cells=[];for(let i=0;i<42;i++){let n=i-start+1,d,muted=false;if(n<1){d=iso(new Date(y,m-1,prev+n));muted=true}else if(n>days){d=iso(new Date(y,m,n));muted=true}else d=iso(new Date(y,m,n));cells.push(`<div class="day ${muted?'muted-day':''} ${d===today?'today':''}" data-date="${d}"><div class="num">${new Date(d+'T00:00:00').getDate()}</div>${allTasks().filter(t=>t.date===d).slice(0,3).map(t=>`<div class="event">${esc(t.title)}</div>`).join('')}</div>`)}c.innerHTML=`<div class="calendar"><div class="cal-head">${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(x=>`<div>${x}</div>`).join('')}</div><div class="cal-grid">${cells.join('')}</div></div>`;c.querySelectorAll('.day').forEach(x=>x.onclick=()=>openNew(x.dataset.date))}
+function openNew(date=today){editing=null;$('modalTitle').textContent='Nueva tarea';$('taskForm').reset();$('taskId').value='';$('date').value=date;$('modal').classList.remove('hidden');setTimeout(()=>$('title').focus(),50)}
+function openEdit(id){let t=tasks.find(x=>x.id===id);if(!t)return;editing=id;$('modalTitle').textContent='Editar tarea';$('taskId').value=id;$('title').value=t.title;$('date').value=t.date;$('time').value=t.time||'';$('priority').value=t.priority;$('category').value=t.category;$('repeat').value=t.repeat;$('reminder').checked=t.reminder;$('modal').classList.remove('hidden')}
+function close(){ $('modal').classList.add('hidden') }
+$('newTask').onclick=()=>openNew();$('closeModal').onclick=close;$('cancel').onclick=close;
+$('taskForm').onsubmit=e=>{e.preventDefault();let data={id:editing||crypto.randomUUID(),title:$('title').value.trim(),date:$('date').value,time:$('time').value,priority:$('priority').value,category:$('category').value,repeat:$('repeat').value,reminder:$('reminder').checked,done:false};if(editing){let old=tasks.find(t=>t.id===editing);data.done=old.done;tasks=tasks.map(t=>t.id===editing?data:t)}else tasks.push(data);save();close();render()};
+$('content').onclick=e=>{let b=e.target.closest('button[data-act]');if(!b)return;let id=b.dataset.id;if(b.dataset.act==='toggle'){let t=tasks.find(x=>x.id===id);if(t)t.done=!t.done}if(b.dataset.act==='delete')tasks=tasks.filter(x=>x.id!==id);if(b.dataset.act==='edit')return openEdit(id);save();render()};
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');view=b.dataset.view;render()});$('prev').onclick=()=>{cursor.setDate(cursor.getDate()-(view==='calendar'?30:7));render()};$('next').onclick=()=>{cursor.setDate(cursor.getDate()+(view==='calendar'?30:7));render()};$('goToday').onclick=()=>{cursor=new Date();cursor.setHours(0,0,0,0);render()};$('notifyBtn').onclick=async()=>{if(!('Notification'in window))return alert('Este navegador no permite notificaciones.');let p=await Notification.requestPermission();if(p==='granted'){new Notification('Recordatorios activados',{body:'Te avisaré de las tareas con recordatorio.'});checkReminders()}};
+function checkReminders(){if(!('Notification'in window)||Notification.permission!=='granted')return;let now=new Date();allTasks().filter(t=>t.reminder&&!t.done&&t.time&&t.date===iso(now)).forEach(t=>{let [h,m]=t.time.split(':').map(Number),target=new Date();target.setHours(h,m,0,0);if(Math.abs(target-now)/60000<=10)new Notification('Recordatorio: '+t.title,{body:'Tienes una tarea programada a las '+t.time})})}setInterval(checkReminders,60000);render();

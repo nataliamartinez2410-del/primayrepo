@@ -1,68 +1,11 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#111827" />
-  <title>Mis Tareas | Organizador diario</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111827"><title>Mi Agenda</title><link rel="stylesheet" href="styles.css"></head>
 <body>
-  <main class="app-shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">ORGANIZADOR DIARIO</p>
-        <h1>Mis tareas</h1>
-        <p id="today" class="muted"></p>
-      </div>
-      <button id="clearCompleted" class="ghost-btn" type="button">Limpiar completadas</button>
-    </header>
-
-    <section class="stats" aria-label="Resumen">
-      <article><span id="totalCount">0</span><small>Total</small></article>
-      <article><span id="pendingCount">0</span><small>Pendientes</small></article>
-      <article><span id="doneCount">0</span><small>Completadas</small></article>
-      <article><span id="highCount">0</span><small>Prioridad alta</small></article>
-    </section>
-
-    <section class="card composer">
-      <form id="taskForm">
-        <input id="taskInput" required maxlength="120" placeholder="¿Qué necesitas hacer hoy?" autocomplete="off" />
-        <select id="priorityInput" aria-label="Prioridad">
-          <option value="normal">Normal</option>
-          <option value="alta">Alta</option>
-          <option value="baja">Baja</option>
-        </select>
-        <select id="categoryInput" aria-label="Categoría">
-          <option value="Personal">Personal</option>
-          <option value="Trabajo">Trabajo</option>
-          <option value="Estudio">Estudio</option>
-          <option value="Casa">Casa</option>
-          <option value="Otro">Otro</option>
-        </select>
-        <input id="dateInput" type="date" aria-label="Fecha" />
-        <button class="primary-btn" type="submit">+ Agregar tarea</button>
-      </form>
-    </section>
-
-    <section class="toolbar card">
-      <div class="filters" role="group" aria-label="Filtros">
-        <button class="filter active" data-filter="all">Todas</button>
-        <button class="filter" data-filter="pending">Pendientes</button>
-        <button class="filter" data-filter="done">Completadas</button>
-      </div>
-      <input id="searchInput" class="search" placeholder="Buscar tarea..." aria-label="Buscar tarea" />
-    </section>
-
-    <section id="taskList" class="task-list" aria-live="polite"></section>
-    <div id="emptyState" class="empty card hidden">
-      <div class="empty-icon">✓</div>
-      <h2>Todo en orden</h2>
-      <p>No hay tareas que coincidan con este filtro.</p>
-    </div>
-
-    <footer>Los datos se guardan automáticamente en este dispositivo.</footer>
-  </main>
-  <script src="app.js"></script>
-</body>
-</html>
+<div class="layout">
+<aside class="sidebar"><div class="brand">✦ <span>Mi Agenda</span></div><button class="add" id="newTask">+ Nueva tarea</button><nav><button class="nav active" data-view="today">☀️ Hoy</button><button class="nav" data-view="agenda">☷ Agenda</button><button class="nav" data-view="calendar">▦ Calendario</button><button class="nav" data-view="tasks">✓ Todas las tareas</button></nav><div class="side-title">CATEGORÍAS</div><div id="categoryNav"></div><div class="side-bottom"><button id="notifyBtn" class="secondary">🔔 Activar recordatorios</button></div></aside>
+<main class="main"><header class="header"><div><p class="eyebrow">ORGANIZADOR PERSONAL</p><h1 id="viewTitle">Hoy</h1><p id="todayLabel" class="muted"></p></div><div class="header-actions"><button id="prev" class="circle">‹</button><button id="next" class="circle">›</button><button id="goToday" class="secondary">Hoy</button></div></header>
+<section class="stats"><div><b id="pending">0</b><span>Pendientes</span></div><div><b id="done">0</b><span>Completadas</span></div><div><b id="overdue">0</b><span>Atrasadas</span></div><div><b id="week">0</b><span>Esta semana</span></div></section>
+<section id="content"></section></main></div>
+<div class="modal hidden" id="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle">Nueva tarea</h2><button id="closeModal">×</button></div><form id="taskForm"><input type="hidden" id="taskId"><label>Tarea<input id="title" required maxlength="120" placeholder="¿Qué necesitas hacer?"></label><div class="grid2"><label>Fecha<input id="date" type="date" required></label><label>Hora<input id="time" type="time"></label><label>Prioridad<select id="priority"><option value="normal">Normal</option><option value="alta">Alta</option><option value="baja">Baja</option></select></label><label>Categoría<select id="category"><option>Trabajo</option><option>Personal</option><option>Estudio</option><option>Casa</option><option>Salud</option><option>Otro</option></select></label></div><label>Repetir<select id="repeat"><option value="none">No repetir</option><option value="daily">Cada día</option><option value="weekdays">Días laborales (L-V)</option><option value="weekly">Cada semana</option><option value="monthly">Cada mes</option></select></label><label class="checkrow"><input id="reminder" type="checkbox"> Recordarme 10 minutos antes</label><div class="modal-actions"><button type="button" class="secondary" id="cancel">Cancelar</button><button class="add" type="submit">Guardar tarea</button></div></form></div></div>
+<script src="app.js"></script></body></html>
